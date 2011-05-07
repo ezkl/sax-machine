@@ -7,11 +7,16 @@ module SAXMachine
     def initialize(object)
       @stack = [[object, nil, ""]]
       @parsed_configs = {}
+      @stack_positions = []
     end
 
+    # characters might be called multiple times according to docs
     def characters(string)
-      object, config, value = stack.last
-      value << string
+      if value = stack.last[2]
+        value << string
+      else
+        stack.last.push(string)
+      end
     end
 
     def cdata_block(string)
@@ -20,12 +25,12 @@ module SAXMachine
 
     def start_element(name, attrs = [])
       attrs.flatten!
-      object, config, value = stack.last
+      object, config, _ = stack.last
       sax_config = object.class.respond_to?(:sax_config) ? object.class.sax_config : nil
         
       if sax_config
         if collection_config = sax_config.collection_config(name, attrs)
-          stack.push [object = collection_config.data_class.new, collection_config, ""]
+          stack.push [object = collection_config.data_class.new, collection_config]
           sax_config = object.class.sax_config
 
           if (attribute_config = object.class.respond_to?(:sax_config) && object.class.sax_config.attribute_configs_for_element(attrs))
@@ -42,7 +47,7 @@ module SAXMachine
 
         if !collection_config && element_config = sax_config.element_config_for_tag(name, attrs)
           new_object = element_config.data_class ? element_config.data_class.new : object
-          stack.push [new_object, element_config, ""]
+          stack.push [new_object, element_config]
 
           if (attribute_config = new_object.class.respond_to?(:sax_config) && new_object.class.sax_config.attribute_configs_for_element(attrs))
             attribute_config.each { |ac| new_object.send(ac.setter, ac.value_from_attrs(attrs)) }
@@ -53,8 +58,10 @@ module SAXMachine
 
     def end_element(name)
       (object, tag_config, _), (element, config, value) = stack[-2..-1]
-      return unless stack.size > 1 && config && config.name.to_s == name.to_s
+      return unless stack.size > 1 && config && config.name == name
+      stack.pop
 
+      unless parsed_config?(object, config)
         if (element_value_config = config.data_class.respond_to?(:sax_config) && config.data_class.sax_config.element_values_for_element)
           element_value_config.each { |evc| element.send(evc.setter, value) }
         end
@@ -73,19 +80,30 @@ module SAXMachine
           else
             value.define_singleton_method(:inner_text) { value }
           end
-          object.send(config.setter, value) unless value == ""
+          object.send(config.setter, value) if value
           mark_as_parsed(object, config)
         end
-      unless parsed_config?(object, config)
       end
-      stack.pop
     end
 
+    # the @stack_positions variable is to avoid a memory leak:
+    # once we come back to a parent element, the child's entry in the hash should be removed
     def mark_as_parsed(object, element_config)
-      @parsed_configs[[object.object_id, element_config.object_id]] = true unless element_config.collection?
+      return if element_config.collection?
+      key = [object.object_id, element_config.object_id]
+      (@stack_positions[stack.size] ||= []).push key
+      @parsed_configs[key] = true
     end
 
     def parsed_config?(object, element_config)
+      last_size = @stack_size || 0
+      @stack_size = stack.size
+      if @stack_size < last_size
+        @stack_positions[@stack_size + 1 .. -1].each do |keys|
+          keys.each {|key| @parsed_configs.delete(key) } if keys
+        end
+        @stack_positions = @stack_positions[0 .. @stack_size]
+      end
       @parsed_configs[[object.object_id, element_config.object_id]]
     end
   end
