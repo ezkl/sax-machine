@@ -1,33 +1,3 @@
-h1. Fork: Laziness
-
-This fork adds the option of declaring *one* set of elements as lazy.
-The Nokogiri Sax parser already operates in constant memory, however Sax Machine fills up memory creating your Ruby objects.
-Laziness will parse the elements one at a time- allowing for constant memory usage with respect to the Ruby objects.
-
-<pre>
-class Atom
-  include SAXMachine
-  element :title
-  elements :entry, :lazy => true, :as => :entries, :class => AtomEntry
-end
-
-feed = Atom.parse(xml_file_handle, :lazy => true)
-feed.entries # => #<Enumerator: #<Enumerator::Generator:0x00000004c41ea0>:each> 
-feed.entries.each do |entry|
-  # no memory blow up!
-end
-</pre>
-
-
-h2. Warning !!!
-* There are failing test cases on this branch- there are known bugs.
-* If you use the lazy option twice, or if the class using this laziness is referenced from multiple other classes, the behavior will be incorrect.
-
-h2. Caution
-The overall speed with laziness may be slower if you can already fit everything into memory.
-Once you traverse the lazy enumerator (with #each) it will be empty.
-
-
 h1. SAX Machine
 
 "http://github.com/pauldix/sax-machine/wikis":http://github.com/pauldix/sax-machine/wikis
@@ -88,6 +58,39 @@ response = SomeServiceResponse.parse("<response><message>hi</message><message>wo
 response.messages.first # => "hi"
 response.messages.last  # => "world"
 </pre>
+
+
+h3. Laziness/Enumerator - Constant memory usage
+
+The Nokogiri Sax parser already operates in constant memory with respect to the file contents. However, Sax Machine fills up memory as it creates your Ruby objects. Using the laziness option will parse top-level elements one at a time- allowing for constant memory usage with respect to the Ruby objects.
+The lazy option only allows *one* set of elements to be declared as lazy.
+
+<pre>
+class Atom
+  include SAXMachine
+  element :title
+  elements :entry, :lazy => true, :as => :entries, :class => AtomEntry
+end
+
+feed = Atom.parse(xml_file_handle, :lazy => true)
+feed.entries # => #<Enumerator: #<Enumerator::Generator:0x00000004c41ea0>:each> 
+feed.entries.each do |entry|
+  # every time the block is called the next entry is parsed- no memory blow up!
+  #
+  # This is probably where you save the entry to a database
+end
+</pre>
+
+
+h2. Warning !!!
+* If you use the lazy option twice, or if the class using this laziness is referenced from multiple other classes, the behavior will be incorrect.
+* Does not work with Ruby version 1.8. Uses ruby fibers and Enumerator capabilities, both of which were added in Ruby version 1.9.
+
+h2. Caution
+* The overall speed with laziness may be slower if you can already fit everything into memory.
+* Once you traverse an enumerator (with #each), it will be empty.
+
+
 
 h2. LICENSE
 

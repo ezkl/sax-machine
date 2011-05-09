@@ -6,8 +6,7 @@ module SAXMachine
 
     def initialize(object)
       @stack = [[object, nil, ""]]
-      @parsed_configs = {}
-      @stack_positions = []
+      @parsed_configs = []
     end
 
     # characters might be called multiple times according to docs
@@ -86,25 +85,25 @@ module SAXMachine
       end
     end
 
-    # the @stack_positions variable is to avoid a memory leak:
-    # once we come back to a parent element, the child's entry in the hash should be removed
+    # @parsed_configs was originally a single hash that was never emptied- a memory leak
+    # now we have an array where the next element represents the child of the previous
+    # once we come back to a parent element, the child's hash should be removed
     def mark_as_parsed(object, element_config)
       return if element_config.collection?
-      key = [object.object_id, element_config.object_id]
-      (@stack_positions[stack.size] ||= []).push key
-      @parsed_configs[key] = true
+      (@parsed_configs[stack.size] ||= {})[
+        [object.object_id, element_config.object_id]
+      ] = true
     end
 
     def parsed_config?(object, element_config)
       last_size = @stack_size || 0
       @stack_size = stack.size
       if @stack_size < last_size
-        @stack_positions[@stack_size + 1 .. -1].each do |keys|
-          keys.each {|key| @parsed_configs.delete(key) } if keys
-        end
-        @stack_positions = @stack_positions[0 .. @stack_size]
+        # free memory
+        @parsed_configs.slice!(@stack_size + 1 .. -1)
       end
-      @parsed_configs[[object.object_id, element_config.object_id]]
+      h = @parsed_configs[@stack_size]
+      h and h[[object.object_id, element_config.object_id]]
     end
   end
 end

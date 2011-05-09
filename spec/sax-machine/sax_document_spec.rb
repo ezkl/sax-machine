@@ -224,6 +224,31 @@ describe "SAXMachine" do
           end
         end
 
+        it "should not save a value when the attribute is missing" do
+          document = @klass.parse("<link />")
+          document.link.should == nil
+        end
+
+        it "should not save a value when the attribute is missing" do
+          document = @klass.parse("<link bar='foo' />")
+          document.link.should == nil
+        end
+
+        it "should not save a value when the attribute is missing" do
+          document = @klass.parse("<link></link>")
+          document.link.should == nil
+        end
+
+        it "should not save a value when the attribute is missing" do
+          document = @klass.parse("<link>\n</link>")
+          document.link.should == nil
+        end
+
+        it "should not save a value when the attribute is missing" do
+          document = @klass.parse("<link>not foo</link>")
+          document.link.should == nil
+        end
+
         it "should save the attribute value" do
           document = @klass.parse("<link foo='test'>hello</link>")
           document.link.should == 'test'
@@ -291,6 +316,27 @@ describe "SAXMachine" do
           document.link.should == 'hello'
           document.link_foo.should == 'test1'
           document.link_bar.should == 'test2'
+        end
+
+        it "should parse the element and attribute values" do
+          document = @klass.parse("<link foo='test1'>hello</link>")
+          document.link.should == 'hello'
+          document.link_foo.should == 'test1'
+          document.link_bar.should == nil
+        end
+
+        it "should parse the element and attribute values" do
+          document = @klass.parse("<link bar='test2'>hello</link>")
+          document.link.should == 'hello'
+          document.link_foo.should == nil
+          document.link_bar.should == 'test2'
+        end
+
+        it "should parse the element and attribute values" do
+          document = @klass.parse("<link>hello</link>")
+          document.link.should == 'hello'
+          document.link_foo.should == nil
+          document.link_bar.should == nil
         end
       end
 

@@ -1,5 +1,4 @@
 require "nokogiri"
-require 'fiber'
 
 module SAXMachine
   def self.included(base)
@@ -8,6 +7,7 @@ module SAXMachine
   
   def parse(thing, options = {})
     if options[:lazy]
+      require 'fiber'
       @parser = Fiber.new do 
         Nokogiri::XML::SAX::Parser.new( SAXHandler.new(self) ).parse(thing)
       end
