@@ -8,8 +8,7 @@ module SAXMachine
         @name = name.to_s
         
         if options.has_key?(:with)
-          # for faster comparisons later
-          @with = options[:with].to_a.flatten.collect {|o| o.to_s}
+          @with = options[:with].to_a.map {|(k,v)| [k.to_s, v.to_s] }
         end
         
         if options.has_key?(:value)
@@ -45,14 +44,18 @@ module SAXMachine
       end
 
       def value_from_attrs(attrs)
-        (i = attrs.index(@value)) && attrs[i + 1]
+        if pair = attrs.assoc(@value)
+          pair.last
+        end
       end
       
       def attrs_match?(attrs)
-        if @with
-          @with == (@with & attrs)
-        else
-          true
+        return true unless @with
+
+        @with.all? do |k,v|
+          if pair = attrs.assoc(k)
+            pair.last == v
+          end
         end
       end
       

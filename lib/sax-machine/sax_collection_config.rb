@@ -10,8 +10,7 @@ module SAXMachine
         @as     = options[:as].to_s
         
         if options.has_key?(:with)
-          # for faster comparisons later
-          @with = options[:with].to_a.flatten.collect {|o| o.to_s}
+          @with = options[:with].to_a.map {|(k,v)| [k.to_s, v.to_s] }
         end
       end
       
@@ -20,10 +19,12 @@ module SAXMachine
       end
       
       def attrs_match?(attrs)
-        if @with
-          @with == (@with & attrs)
-        else
-          true
+        return true unless @with
+
+        @with.all? do |k,v|
+          if pair = attrs.assoc(k)
+            pair.last == v
+          end
         end
       end
 

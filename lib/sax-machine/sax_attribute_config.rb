@@ -20,11 +20,13 @@ module SAXMachine
       end
 
       def value_from_attrs(attrs)
-        attrs.index(@name) ? attrs[attrs.index(@name) + 1] : nil
+        if pair = attrs.assoc(@name)
+          pair.last
+        end
       end
 
       def attrs_match?(attrs)
-        attrs.index(@name) ? true : false
+        !!attrs.assoc(@name)
       end
 
       def has_value_and_attrs_match?(attrs)

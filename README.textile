@@ -60,6 +60,41 @@ response.messages.last  # => "world"
 </pre>
 
 
+h3. attribute and value
+
+<pre>
+    class AuthorElement
+      include SAXMachine
+      value :name
+      attribute :role
+    end
+    class ItemElement
+      include SAXMachine
+      element :title
+      elements :author, :as => :authors, :class => AuthorElement
+    end
+
+    item = ItemElement.parse(xml = <<-XML)
+      <item id="1">
+        <title>sweet</title>
+        <author role="writer">John Doe</author>
+        <author role="artist">Jane Doe</author>
+      </item>
+    XML
+
+    item.title # => 'sweet'
+    item.authors.first.name # => 'John Doe'
+    item.authors.last.role # => 'artist'
+
+    class AuthorRoles
+      include SAXMachine
+      elements :author, :as => :roles, :value => :role
+    end
+
+    AuthorRoles.parse(xml = <<-XML).parse.roles # => ['writer', 'artist']
+</pre>
+
+
 h3. Laziness/Enumerator - Constant memory usage
 
 The Nokogiri Sax parser already operates in constant memory with respect to the file contents. However, Sax Machine fills up memory as it creates your Ruby objects. Using the laziness option will parse top-level elements one at a time- allowing for constant memory usage with respect to the Ruby objects.

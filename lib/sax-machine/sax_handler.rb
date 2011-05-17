@@ -23,7 +23,6 @@ module SAXMachine
     end
 
     def start_element(name, attrs = [])
-      attrs.flatten!
       object, config, _ = stack.last
       sax_config = object.class.respond_to?(:sax_config) ? object.class.sax_config : nil
         

@@ -278,7 +278,7 @@ describe "SAXMachine" do
         it "should parse both the attribute on the node and make the inner text available through the :inner_text method on the class instance" do
           class Bar
             include SAXMachine
-            element :http, :value => :code, :as => :code
+            attribute :code
           end
           @klass = Class.new do
             include SAXMachine
@@ -474,7 +474,7 @@ describe "SAXMachine" do
       it "should parse out an attribute value from the tag when not collection" do        
         class Foo
           include SAXMachine
-          element :entry, :value => :href, :as => :url
+          attribute :href, :as => :url
         end
         @klass = Class.new do
           include SAXMachine
@@ -638,14 +638,7 @@ describe "SAXMachine" do
     end
 
     it 'should have the child element' do
-      @item.author.should_not be_nil
-    end
-
-    it 'should have the author name' do
       @item.author.name.should == 'John Doe'
-    end
-
-    it 'should have the author role' do
       @item.author.role.should == 'writer'
     end
   end
